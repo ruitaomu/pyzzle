@@ -8,6 +8,7 @@ const emit = defineEmits<{
 }>()
 
 const turtleOpen = ref(false)
+const minecraftOpen = ref(false)
 
 const turtleBlockTypes: BlockType[] = [
   'turtleForward',
@@ -17,8 +18,20 @@ const turtleBlockTypes: BlockType[] = [
   'turtleDone',
 ]
 
-const commonBlocks = computed(() => paletteBlocks.filter((item) => !turtleBlockTypes.includes(item.type)))
+const minecraftBlockTypes: BlockType[] = [
+  'minecraftConnect',
+  'minecraftPlayer',
+  'minecraftGetTilePos',
+  'minecraftSetTilePos',
+  'minecraftSetBlock',
+  'minecraftGetBlock',
+]
+
+const commonBlocks = computed(
+  () => paletteBlocks.filter((item) => !turtleBlockTypes.includes(item.type) && !minecraftBlockTypes.includes(item.type)),
+)
 const turtleBlocks = computed(() => paletteBlocks.filter((item) => turtleBlockTypes.includes(item.type)))
+const minecraftBlocks = computed(() => paletteBlocks.filter((item) => minecraftBlockTypes.includes(item.type)))
 
 function getPaletteTone(type: BlockType): 'base' | 'logic' | 'default' {
   if (type === 'condAnd' || type === 'condOr' || type === 'condNot') {
@@ -50,12 +63,17 @@ function onDragStart(event: DragEvent, type: BlockType) {
 function toggleTurtleGroup() {
   turtleOpen.value = !turtleOpen.value
 }
+
+function toggleMinecraftGroup() {
+  minecraftOpen.value = !minecraftOpen.value
+}
 </script>
 
 <template>
   <aside class="palette">
     <h2>模块库</h2>
     <p class="hint">拖拽到中间代码区，或点击快速插入</p>
+
     <div class="items common-items">
       <div class="group">
         <button
@@ -83,6 +101,26 @@ function toggleTurtleGroup() {
           v-for="item in turtleBlocks"
           :key="item.type"
           class="palette-item turtle-item"
+          type="button"
+          draggable="true"
+          @dragstart="onDragStart($event, item.type)"
+          @click="emit('add', item.type)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+    </section>
+
+    <section class="minecraft-section" :class="{ open: minecraftOpen }">
+      <button type="button" class="group-toggle minecraft-toggle" @click="toggleMinecraftGroup">
+        <span class="toggle-label">Minecraft</span>
+        <span class="toggle-mark">{{ minecraftOpen ? '-' : '+' }}</span>
+      </button>
+      <div v-if="minecraftOpen" class="group minecraft-group">
+        <button
+          v-for="item in minecraftBlocks"
+          :key="item.type"
+          class="palette-item minecraft-item"
           type="button"
           draggable="true"
           @dragstart="onDragStart($event, item.type)"
@@ -141,17 +179,29 @@ h2 {
   padding-right: 4px;
 }
 
-.turtle-section {
+.turtle-section,
+.minecraft-section {
   margin-top: 8px;
-  border: 2px solid #96c7dd;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.55);
   overflow: hidden;
   flex-shrink: 0;
 }
 
+.turtle-section {
+  border: 2px solid #96c7dd;
+}
+
+.minecraft-section {
+  border: 2px solid #8cc6a5;
+}
+
 .turtle-section.open {
   background: rgba(226, 247, 255, 0.85);
+}
+
+.minecraft-section.open {
+  background: rgba(232, 255, 237, 0.85);
 }
 
 .group-toggle {
@@ -168,6 +218,11 @@ h2 {
   cursor: pointer;
 }
 
+.minecraft-toggle {
+  background: linear-gradient(180deg, #dcffea 0%, #b9f0cc 100%);
+  color: #175034;
+}
+
 .toggle-label {
   font-size: 14px;
 }
@@ -179,7 +234,8 @@ h2 {
   line-height: 1;
 }
 
-.turtle-group {
+.turtle-group,
+.minecraft-group {
   padding: 10px;
 }
 
@@ -206,6 +262,10 @@ h2 {
 
 .turtle-item {
   background: linear-gradient(180deg, #d8fff3 0%, #a8f0d3 100%);
+}
+
+.minecraft-item {
+  background: linear-gradient(180deg, #e3ffe3 0%, #bdf0bf 100%);
 }
 
 .palette-item:hover {

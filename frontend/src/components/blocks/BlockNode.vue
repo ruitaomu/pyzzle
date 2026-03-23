@@ -122,6 +122,14 @@ function isRequiredInlineSlot(blockType: BlockType, slotIndex: number): boolean 
     return false
   }
 
+  if (blockType === 'minecraftConnect' || blockType === 'minecraftSetTilePos' || blockType === 'minecraftGetBlock' || blockType === 'minecraftGetTilePos') {
+    return false
+  }
+
+  if (blockType === 'minecraftSetBlock') {
+    return slotIndex === 3
+  }
+
   if (blockType === 'if' || blockType === 'elif' || blockType === 'while') {
     return slotIndex === 0
   }
@@ -165,6 +173,17 @@ function getTurtleLabel(blockType: BlockType): string {
   }
   return 'turtle.done()'
 }
+
+function isMinecraftBlock(blockType: BlockType): boolean {
+  return (
+    blockType === 'minecraftConnect' ||
+    blockType === 'minecraftPlayer' ||
+    blockType === 'minecraftGetTilePos' ||
+    blockType === 'minecraftSetTilePos' ||
+    blockType === 'minecraftSetBlock' ||
+    blockType === 'minecraftGetBlock'
+  )
+}
 </script>
 
 <template>
@@ -176,7 +195,7 @@ function getTurtleLabel(blockType: BlockType): string {
     @dragstart="onDragStart"
   >
     <div class="block-head">
-      <span v-if="!isRangeBlock && block.type !== 'assign' && block.type !== 'print' && block.type !== 'input' && block.type !== 'int' && block.type !== 'randomRandInt' && block.type !== 'condAnd' && block.type !== 'condOr' && block.type !== 'condNot' && !isTurtleArgBlock(block.type) && block.type !== 'turtleDone'" class="label">{{ block.label }}</span>
+      <span v-if="!isRangeBlock && block.type !== 'assign' && block.type !== 'print' && block.type !== 'input' && block.type !== 'int' && block.type !== 'randomRandInt' && block.type !== 'condAnd' && block.type !== 'condOr' && block.type !== 'condNot' && !isTurtleArgBlock(block.type) && block.type !== 'turtleDone' && !isMinecraftBlock(block.type)" class="label">{{ block.label }}</span>
       <span v-if="unmatchedBranch" class="chain-role-badge error">
         没有匹配的if
       </span>
@@ -315,6 +334,84 @@ function getTurtleLabel(blockType: BlockType): string {
       </template>
       <template v-else-if="block.type === 'turtleDone'">
         <span class="label">{{ getTurtleLabel(block.type) }}</span>
+      </template>
+      <template v-else-if="block.type === 'minecraftConnect'">
+        <span class="label">mc = minecraft.Minecraft.create(</span>
+        <InlineSlot
+          v-if="block.inlineSlots[0]"
+          :slot-data="block.inlineSlots[0]"
+          :required="isRequiredInlineSlot(block.type, 0)"
+          @drop-block="emit('dropInline', $event)"
+          @text-change="emit('inputInline', $event)"
+          @range-arity-change="emit('rangeArityChange', $event)"
+        />
+        <span class="label">)</span>
+      </template>
+      <template v-else-if="block.type === 'minecraftPlayer'">
+        <span class="label">player = mc.player</span>
+      </template>
+      <template v-else-if="block.type === 'minecraftGetTilePos'">
+        <template v-for="(slot, index) in block.inlineSlots" :key="slot.id">
+          <InlineSlot
+            :slot-data="slot"
+            :required="isRequiredInlineSlot(block.type, index)"
+            narrow
+            :narrow-chars="4"
+            @drop-block="emit('dropInline', $event)"
+            @text-change="emit('inputInline', $event)"
+            @range-arity-change="emit('rangeArityChange', $event)"
+          />
+          <span v-if="index < block.inlineSlots.length - 1" class="keyword-in">,</span>
+        </template>
+        <span class="label">= player.getTilePos()</span>
+      </template>
+      <template v-else-if="block.type === 'minecraftSetTilePos'">
+        <span class="label">player.setTilePos(</span>
+        <template v-for="(slot, index) in block.inlineSlots" :key="slot.id">
+          <InlineSlot
+            :slot-data="slot"
+            :required="isRequiredInlineSlot(block.type, index)"
+            narrow
+            :narrow-chars="4"
+            @drop-block="emit('dropInline', $event)"
+            @text-change="emit('inputInline', $event)"
+            @range-arity-change="emit('rangeArityChange', $event)"
+          />
+          <span v-if="index < block.inlineSlots.length - 1" class="keyword-in">,</span>
+        </template>
+        <span class="label">)</span>
+      </template>
+      <template v-else-if="block.type === 'minecraftSetBlock'">
+        <span class="label">mc.setBlock(</span>
+        <template v-for="(slot, index) in block.inlineSlots" :key="slot.id">
+          <InlineSlot
+            :slot-data="slot"
+            :required="isRequiredInlineSlot(block.type, index)"
+            :narrow="index < 3"
+            :narrow-chars="4"
+            @drop-block="emit('dropInline', $event)"
+            @text-change="emit('inputInline', $event)"
+            @range-arity-change="emit('rangeArityChange', $event)"
+          />
+          <span v-if="index < block.inlineSlots.length - 1" class="keyword-in">,</span>
+        </template>
+        <span class="label">)</span>
+      </template>
+      <template v-else-if="block.type === 'minecraftGetBlock'">
+        <span class="label">mc.getBlock(</span>
+        <template v-for="(slot, index) in block.inlineSlots" :key="slot.id">
+          <InlineSlot
+            :slot-data="slot"
+            :required="isRequiredInlineSlot(block.type, index)"
+            narrow
+            :narrow-chars="4"
+            @drop-block="emit('dropInline', $event)"
+            @text-change="emit('inputInline', $event)"
+            @range-arity-change="emit('rangeArityChange', $event)"
+          />
+          <span v-if="index < block.inlineSlots.length - 1" class="keyword-in">,</span>
+        </template>
+        <span class="label">)</span>
       </template>
       <template v-else-if="block.type === 'condAnd'">
         <InlineSlot

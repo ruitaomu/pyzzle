@@ -6,6 +6,12 @@ export type BlockType =
   | 'while'
   | 'break'
   | 'continue'
+  | 'minecraftConnect'
+  | 'minecraftPlayer'
+  | 'minecraftGetTilePos'
+  | 'minecraftSetTilePos'
+  | 'minecraftSetBlock'
+  | 'minecraftGetBlock'
   | 'turtleForward'
   | 'turtleBackward'
   | 'turtleLeft'
@@ -32,6 +38,7 @@ export interface InlineSlotModel {
   placeholder: string
   textValue: string
   blockValue: BlockModel | null
+  usePlaceholderAsDefault?: boolean
   allowBlockDrop?: boolean
   validationType?: SlotValidationType
   acceptsConditionBlocks?: boolean
@@ -55,7 +62,7 @@ export interface IfChainInfo {
 }
 
 const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: string[]; hasChildren: boolean }> = [
-  { type: 'assign', label: '=', inlinePlaceholders: ['变量', '值'], hasChildren: false },
+  { type: 'assign', label: '赋值', inlinePlaceholders: ['变量', '值'], hasChildren: false },
   { type: 'if', label: 'if', inlinePlaceholders: ['condition'], hasChildren: true },
   { type: 'elif', label: 'elif', inlinePlaceholders: ['condition'], hasChildren: true },
   { type: 'else', label: 'else', inlinePlaceholders: [], hasChildren: true },
@@ -65,17 +72,23 @@ const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: 
   { type: 'continue', label: 'continue', inlinePlaceholders: [], hasChildren: false },
   { type: 'print', label: 'print()', inlinePlaceholders: ['arg'], hasChildren: false },
   { type: 'input', label: 'input()', inlinePlaceholders: ['prompt'], hasChildren: false },
-  { type: 'int', label: 'int()', inlinePlaceholders: ['arg'], hasChildren: false },
   { type: 'range', label: 'range()', inlinePlaceholders: ['stop'], hasChildren: false },
-  { type: 'randomRandInt', label: 'random.randInt()', inlinePlaceholders: ['arg1', 'arg2'], hasChildren: false },
+  { type: 'int', label: 'int()', inlinePlaceholders: ['arg'], hasChildren: false },
   { type: 'condAnd', label: 'and', inlinePlaceholders: ['left', 'right'], hasChildren: false },
   { type: 'condOr', label: 'or', inlinePlaceholders: ['left', 'right'], hasChildren: false },
   { type: 'condNot', label: 'not', inlinePlaceholders: ['value'], hasChildren: false },
+  { type: 'randomRandInt', label: 'random.randInt()', inlinePlaceholders: ['arg1', 'arg2'], hasChildren: false },
   { type: 'turtleForward', label: 'turtle.forward()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleBackward', label: 'turtle.backward()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleLeft', label: 'turtle.left()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleRight', label: 'turtle.right()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleDone', label: 'turtle.done()', inlinePlaceholders: [], hasChildren: false },
+  { type: 'minecraftConnect', label: '连接Minecraft', inlinePlaceholders: ['可选参数'], hasChildren: false },
+  { type: 'minecraftPlayer', label: '得到player', inlinePlaceholders: [], hasChildren: false },
+  { type: 'minecraftGetTilePos', label: '获得player的位置坐标', inlinePlaceholders: ['x', 'y', 'z'], hasChildren: false },
+  { type: 'minecraftSetTilePos', label: '设置player的位置坐标', inlinePlaceholders: ['x', 'y', 'z'], hasChildren: false },
+  { type: 'minecraftSetBlock', label: '放置方块', inlinePlaceholders: ['x', 'y', 'z', 'blockId'], hasChildren: false },
+  { type: 'minecraftGetBlock', label: '取得方块Id', inlinePlaceholders: ['x', 'y', 'z'], hasChildren: false },
 ]
 
 const nextId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
@@ -97,12 +110,14 @@ export function createBlock(type: BlockType): BlockModel {
       placeholder,
       textValue: '',
       blockValue: null,
+      usePlaceholderAsDefault: true,
       allowBlockDrop: true,
     })),
     children: [],
   }
 
   applyVariableSlotRules(block)
+  applyMinecraftSlotRules(block)
 
   return block
 }
@@ -120,10 +135,48 @@ export function applyVariableSlotRules(block: BlockModel): void {
   if (block.type === 'assign' && block.inlineSlots[1]) {
     block.inlineSlots[1].acceptsConditionBlocks = true
   }
+
+  applyMinecraftSlotRules(block)
 }
 
 export function isStructuredBlock(type: BlockType): boolean {
   return type === 'if' || type === 'elif' || type === 'else' || type === 'for' || type === 'while'
+}
+
+function applyMinecraftSlotRules(block: BlockModel): void {
+  if (block.type === 'minecraftConnect' && block.inlineSlots[0]) {
+    block.inlineSlots[0].usePlaceholderAsDefault = false
+  }
+
+  if (block.type === 'minecraftGetTilePos') {
+    for (const slot of block.inlineSlots) {
+      slot.usePlaceholderAsDefault = true
+      slot.allowBlockDrop = false
+      slot.validationType = 'python_identifier'
+    }
+  }
+
+  if (block.type === 'minecraftSetTilePos') {
+    for (const slot of block.inlineSlots) {
+      slot.usePlaceholderAsDefault = true
+    }
+  }
+
+  if (block.type === 'minecraftSetBlock') {
+    for (let index = 0; index < block.inlineSlots.length; index += 1) {
+      const slot = block.inlineSlots[index]
+      slot.usePlaceholderAsDefault = index < 3
+      if (index === 3) {
+        slot.allowBlockDrop = true
+      }
+    }
+  }
+
+  if (block.type === 'minecraftGetBlock') {
+    for (const slot of block.inlineSlots) {
+      slot.usePlaceholderAsDefault = true
+    }
+  }
 }
 
 export function getIfChains(blocks: BlockModel[]): IfChainInfo[] {

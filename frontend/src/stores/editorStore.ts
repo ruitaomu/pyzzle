@@ -486,6 +486,14 @@ function renderProgram(nodes: BlockModel[]): string {
     'turtleRight',
     'turtleDone',
   ]))
+  const needsMinecraftImport = nodes.some((node) => containsAnyBlockType(node, [
+    'minecraftConnect',
+    'minecraftPlayer',
+    'minecraftGetTilePos',
+    'minecraftSetTilePos',
+    'minecraftSetBlock',
+    'minecraftGetBlock',
+  ]))
   const imports: string[] = []
 
   if (needsRandomImport) {
@@ -493,6 +501,10 @@ function renderProgram(nodes: BlockModel[]): string {
   }
   if (needsTurtleImport) {
     imports.push('import turtle')
+  }
+  if (needsMinecraftImport) {
+    imports.push('import mcpi.minecraft as minecraft')
+    imports.push('from mcpi import block')
   }
 
   if (imports.length === 0) {
@@ -531,6 +543,25 @@ function renderBlock(node: BlockModel, depth: number): string {
   }
   if (node.type === 'continue') {
     return `${indent}continue`
+  }
+  if (node.type === 'minecraftConnect') {
+    const arg = renderSlotValue(node.inlineSlots[0], false)
+    return arg ? `${indent}mc = minecraft.Minecraft.create(${arg})` : `${indent}mc = minecraft.Minecraft.create()`
+  }
+  if (node.type === 'minecraftPlayer') {
+    return `${indent}player = mc.player`
+  }
+  if (node.type === 'minecraftGetTilePos') {
+    return `${indent}${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]} = player.getTilePos()`
+  }
+  if (node.type === 'minecraftSetTilePos') {
+    return `${indent}player.setTilePos(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]})`
+  }
+  if (node.type === 'minecraftSetBlock') {
+    return `${indent}mc.setBlock(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]}, ${slotValues[3]})`
+  }
+  if (node.type === 'minecraftGetBlock') {
+    return `${indent}mc.getBlock(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]})`
   }
   if (node.type === 'turtleForward') {
     return `${indent}turtle.forward(${functionArgValues[0]})`
@@ -604,6 +635,25 @@ function renderInlineBlock(node: BlockModel): string {
   if (node.type === 'input') {
     return `input(${functionArgValues[0]})`
   }
+  if (node.type === 'minecraftConnect') {
+    const arg = renderSlotValue(node.inlineSlots[0], false)
+    return arg ? `mc = minecraft.Minecraft.create(${arg})` : 'mc = minecraft.Minecraft.create()'
+  }
+  if (node.type === 'minecraftPlayer') {
+    return 'player = mc.player'
+  }
+  if (node.type === 'minecraftGetTilePos') {
+    return `${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]} = player.getTilePos()`
+  }
+  if (node.type === 'minecraftSetTilePos') {
+    return `player.setTilePos(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]})`
+  }
+  if (node.type === 'minecraftSetBlock') {
+    return `mc.setBlock(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]}, ${slotValues[3]})`
+  }
+  if (node.type === 'minecraftGetBlock') {
+    return `mc.getBlock(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]})`
+  }
   if (node.type === 'for') {
     return `(${slotValues[0]} in ${slotValues[1]})`
   }
@@ -653,7 +703,11 @@ function renderSlotValue(slot: InlineSlotModel, allowPlaceholder: boolean): stri
     return text
   }
 
-  return allowPlaceholder ? slot.placeholder : ''
+  if (!allowPlaceholder || slot.usePlaceholderAsDefault === false) {
+    return ''
+  }
+
+  return slot.placeholder
 }
 
 function adjustRangeSlots(currentSlots: InlineSlotModel[], arity: number): InlineSlotModel[] {

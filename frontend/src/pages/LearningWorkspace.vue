@@ -103,7 +103,7 @@ onUnmounted(() => {
       @dragover.prevent.stop
       @drop="onTrashDrop"
     >
-      <span aria-hidden="true">BIN</span>
+      <span aria-hidden="true">🗑️</span>
       <small>删除</small>
     </button>
 
