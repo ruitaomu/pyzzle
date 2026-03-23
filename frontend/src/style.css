@@ -1,0 +1,35 @@
+:root {
+  --bg: #f7fbff;
+  --panel: #ffffff;
+  --panel-2: #f2f9ff;
+  --stroke: #86b8de;
+  --text: #133047;
+  --muted-text: #4b738f;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  color: var(--text);
+  background: radial-gradient(circle at 8% 10%, #d5f3ff 0%, #f7fbff 36%, #fefbe8 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+#app {
+  width: min(1400px, 100%);
+  margin: 0 auto;
+}
