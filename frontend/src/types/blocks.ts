@@ -6,6 +6,11 @@ export type BlockType =
   | 'while'
   | 'break'
   | 'continue'
+  | 'turtleForward'
+  | 'turtleBackward'
+  | 'turtleLeft'
+  | 'turtleRight'
+  | 'turtleDone'
   | 'condAnd'
   | 'condOr'
   | 'condNot'
@@ -50,22 +55,27 @@ export interface IfChainInfo {
 }
 
 const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: string[]; hasChildren: boolean }> = [
+  { type: 'assign', label: '=', inlinePlaceholders: ['变量', '值'], hasChildren: false },
   { type: 'if', label: 'if', inlinePlaceholders: ['condition'], hasChildren: true },
   { type: 'elif', label: 'elif', inlinePlaceholders: ['condition'], hasChildren: true },
   { type: 'else', label: 'else', inlinePlaceholders: [], hasChildren: true },
-  { type: 'for', label: 'for', inlinePlaceholders: ['item', 'iterable'], hasChildren: true },
   { type: 'while', label: 'while', inlinePlaceholders: ['condition'], hasChildren: true },
+  { type: 'for', label: 'for', inlinePlaceholders: ['item', 'iterable'], hasChildren: true },
   { type: 'break', label: 'break', inlinePlaceholders: [], hasChildren: false },
   { type: 'continue', label: 'continue', inlinePlaceholders: [], hasChildren: false },
+  { type: 'print', label: 'print()', inlinePlaceholders: ['arg'], hasChildren: false },
+  { type: 'input', label: 'input()', inlinePlaceholders: ['prompt'], hasChildren: false },
+  { type: 'int', label: 'int()', inlinePlaceholders: ['arg'], hasChildren: false },
+  { type: 'range', label: 'range()', inlinePlaceholders: ['stop'], hasChildren: false },
+  { type: 'randomRandInt', label: 'random.randInt()', inlinePlaceholders: ['arg1', 'arg2'], hasChildren: false },
   { type: 'condAnd', label: 'and', inlinePlaceholders: ['left', 'right'], hasChildren: false },
   { type: 'condOr', label: 'or', inlinePlaceholders: ['left', 'right'], hasChildren: false },
   { type: 'condNot', label: 'not', inlinePlaceholders: ['value'], hasChildren: false },
-  { type: 'assign', label: '赋值', inlinePlaceholders: ['变量', '值'], hasChildren: false },
-  { type: 'range', label: 'range()', inlinePlaceholders: ['stop'], hasChildren: false },
-  { type: 'int', label: 'int()', inlinePlaceholders: ['arg'], hasChildren: false },
-  { type: 'randomRandInt', label: 'random.randInt()', inlinePlaceholders: ['arg1', 'arg2'], hasChildren: false },
-  { type: 'print', label: 'print()', inlinePlaceholders: ['arg'], hasChildren: false },
-  { type: 'input', label: 'input()', inlinePlaceholders: ['prompt'], hasChildren: false },
+  { type: 'turtleForward', label: 'turtle.forward()', inlinePlaceholders: ['参数'], hasChildren: false },
+  { type: 'turtleBackward', label: 'turtle.backward()', inlinePlaceholders: ['参数'], hasChildren: false },
+  { type: 'turtleLeft', label: 'turtle.left()', inlinePlaceholders: ['参数'], hasChildren: false },
+  { type: 'turtleRight', label: 'turtle.right()', inlinePlaceholders: ['参数'], hasChildren: false },
+  { type: 'turtleDone', label: 'turtle.done()', inlinePlaceholders: [], hasChildren: false },
 ]
 
 const nextId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`

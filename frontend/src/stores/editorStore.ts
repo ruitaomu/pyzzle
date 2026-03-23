@@ -479,16 +479,31 @@ function findBlockPath(
 function renderProgram(nodes: BlockModel[]): string {
   const body = nodes.map((node) => renderBlock(node, 0)).join('\n').trimEnd()
   const needsRandomImport = nodes.some((node) => containsBlockType(node, 'randomRandInt'))
+  const needsTurtleImport = nodes.some((node) => containsAnyBlockType(node, [
+    'turtleForward',
+    'turtleBackward',
+    'turtleLeft',
+    'turtleRight',
+    'turtleDone',
+  ]))
+  const imports: string[] = []
 
-  if (!needsRandomImport) {
+  if (needsRandomImport) {
+    imports.push('import random')
+  }
+  if (needsTurtleImport) {
+    imports.push('import turtle')
+  }
+
+  if (imports.length === 0) {
     return body
   }
 
   if (!body) {
-    return 'import random'
+    return imports.join('\n')
   }
 
-  return `import random\n\n${body}`
+  return `${imports.join('\n')}\n\n${body}`
 }
 
 function renderBlock(node: BlockModel, depth: number): string {
@@ -516,6 +531,21 @@ function renderBlock(node: BlockModel, depth: number): string {
   }
   if (node.type === 'continue') {
     return `${indent}continue`
+  }
+  if (node.type === 'turtleForward') {
+    return `${indent}turtle.forward(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleBackward') {
+    return `${indent}turtle.backward(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleLeft') {
+    return `${indent}turtle.left(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleRight') {
+    return `${indent}turtle.right(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleDone') {
+    return `${indent}turtle.done()`
   }
   if (node.type === 'condAnd') {
     return `${indent}${functionArgValues[0]} and ${functionArgValues[1]}`
@@ -582,6 +612,21 @@ function renderInlineBlock(node: BlockModel): string {
   }
   if (node.type === 'continue') {
     return 'continue'
+  }
+  if (node.type === 'turtleForward') {
+    return `turtle.forward(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleBackward') {
+    return `turtle.backward(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleLeft') {
+    return `turtle.left(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleRight') {
+    return `turtle.right(${functionArgValues[0]})`
+  }
+  if (node.type === 'turtleDone') {
+    return 'turtle.done()'
   }
   if (node.type === 'condAnd') {
     return `${functionArgValues[0]} and ${functionArgValues[1]}`
@@ -674,6 +719,10 @@ function containsBlockType(node: BlockModel, targetType: BlockType): boolean {
   }
 
   return false
+}
+
+function containsAnyBlockType(node: BlockModel, targetTypes: BlockType[]): boolean {
+  return targetTypes.some((targetType) => containsBlockType(node, targetType))
 }
 
 function isInlineOnlyBlockType(type: BlockType): boolean {

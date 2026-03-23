@@ -140,6 +140,31 @@ function isRequiredInlineSlot(blockType: BlockType, slotIndex: number): boolean 
 
   return true
 }
+
+function isTurtleArgBlock(blockType: BlockType): boolean {
+  return (
+    blockType === 'turtleForward' ||
+    blockType === 'turtleBackward' ||
+    blockType === 'turtleLeft' ||
+    blockType === 'turtleRight'
+  )
+}
+
+function getTurtleLabel(blockType: BlockType): string {
+  if (blockType === 'turtleForward') {
+    return 'turtle.forward('
+  }
+  if (blockType === 'turtleBackward') {
+    return 'turtle.backward('
+  }
+  if (blockType === 'turtleLeft') {
+    return 'turtle.left('
+  }
+  if (blockType === 'turtleRight') {
+    return 'turtle.right('
+  }
+  return 'turtle.done()'
+}
 </script>
 
 <template>
@@ -151,7 +176,7 @@ function isRequiredInlineSlot(blockType: BlockType, slotIndex: number): boolean 
     @dragstart="onDragStart"
   >
     <div class="block-head">
-      <span v-if="!isRangeBlock && block.type !== 'assign' && block.type !== 'print' && block.type !== 'input' && block.type !== 'int' && block.type !== 'randomRandInt' && block.type !== 'condAnd' && block.type !== 'condOr' && block.type !== 'condNot'" class="label">{{ block.label }}</span>
+      <span v-if="!isRangeBlock && block.type !== 'assign' && block.type !== 'print' && block.type !== 'input' && block.type !== 'int' && block.type !== 'randomRandInt' && block.type !== 'condAnd' && block.type !== 'condOr' && block.type !== 'condNot' && !isTurtleArgBlock(block.type) && block.type !== 'turtleDone'" class="label">{{ block.label }}</span>
       <span v-if="unmatchedBranch" class="chain-role-badge error">
         没有匹配的if
       </span>
@@ -275,6 +300,21 @@ function isRequiredInlineSlot(blockType: BlockType, slotIndex: number): boolean 
           @range-arity-change="emit('rangeArityChange', $event)"
         />
         <span class="label">)</span>
+      </template>
+      <template v-else-if="isTurtleArgBlock(block.type)">
+        <span class="label">{{ getTurtleLabel(block.type) }}</span>
+        <InlineSlot
+          v-if="block.inlineSlots[0]"
+          :slot-data="block.inlineSlots[0]"
+          :required="isRequiredInlineSlot(block.type, 0)"
+          @drop-block="emit('dropInline', $event)"
+          @text-change="emit('inputInline', $event)"
+          @range-arity-change="emit('rangeArityChange', $event)"
+        />
+        <span class="label">)</span>
+      </template>
+      <template v-else-if="block.type === 'turtleDone'">
+        <span class="label">{{ getTurtleLabel(block.type) }}</span>
       </template>
       <template v-else-if="block.type === 'condAnd'">
         <InlineSlot
