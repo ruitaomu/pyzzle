@@ -597,7 +597,7 @@ function renderBlock(node: BlockModel, depth: number): string {
     return `${indent}int(${functionArgValues[0]})`
   }
   if (node.type === 'randomRandInt') {
-    return `${indent}random.randInt(${functionArgValues[0]}, ${functionArgValues[1]})`
+    return `${indent}random.randint(${functionArgValues[0]}, ${functionArgValues[1]})`
   }
   if (node.type === 'print') {
     return `${indent}print(${functionArgValues[0]})`
@@ -627,7 +627,7 @@ function renderInlineBlock(node: BlockModel): string {
     return `int(${functionArgValues[0]})`
   }
   if (node.type === 'randomRandInt') {
-    return `random.randInt(${functionArgValues[0]}, ${functionArgValues[1]})`
+    return `random.randint(${functionArgValues[0]}, ${functionArgValues[1]})`
   }
   if (node.type === 'print') {
     return `print(${functionArgValues[0]})`

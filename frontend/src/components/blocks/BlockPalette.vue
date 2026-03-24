@@ -7,6 +7,7 @@ const emit = defineEmits<{
   add: [type: BlockType]
 }>()
 
+const showTurtleBlocks = false
 const turtleOpen = ref(false)
 const minecraftOpen = ref(false)
 
@@ -91,7 +92,7 @@ function toggleMinecraftGroup() {
       </div>
     </div>
 
-    <section class="turtle-section" :class="{ open: turtleOpen }">
+    <section v-if="showTurtleBlocks" class="turtle-section" :class="{ open: turtleOpen }">
       <button type="button" class="group-toggle" @click="toggleTurtleGroup">
         <span class="toggle-label">Turtle</span>
         <span class="toggle-mark">{{ turtleOpen ? '-' : '+' }}</span>

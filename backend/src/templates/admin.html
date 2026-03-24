@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pyzzle 教师管理台</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef5f3;
+        --panel: #ffffff;
+        --ink: #17313c;
+        --muted: #5d7480;
+        --line: #c4d5db;
+        --accent: #1a7f64;
+        --warn: #b54708;
+        --danger: #b42318;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        padding: 24px;
+        background: radial-gradient(circle at top, #dff6ff 0%, var(--bg) 55%);
+        color: var(--ink);
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+      }
+
+      .meta {
+        color: var(--muted);
+        margin-bottom: 18px;
+      }
+
+      .layout {
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 10px 32px rgb(16 24 40 / 8%);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #e4ecef;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #edf7f3;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill.warn { background: #fff3e0; color: var(--warn); }
+      .pill.danger { background: #fee4e2; color: var(--danger); }
+
+      button {
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 700;
+        margin-right: 8px;
+        margin-bottom: 8px;
+      }
+
+      button.stop { border-color: #f9b37b; background: #fff4ea; }
+      button.block { border-color: #ef9a9a; background: #fff1f1; }
+      button.unblock { border-color: #96d2bf; background: #f1fff8; }
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+        line-height: 1.5;
+        background: #f7fbfc;
+        border: 1px solid #e1ecf0;
+        border-radius: 12px;
+        padding: 10px;
+        max-height: 180px;
+        overflow: auto;
+      }
+
+      .empty {
+        color: var(--muted);
+        padding: 24px 0 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <section class="card">
+        <h1>Pyzzle 教师管理台</h1>
+        <div class="meta">查看已连接用户、程序状态、最近提交，并可强制停止或屏蔽指定用户。</div>
+        <div id="summary" class="meta">加载中...</div>
+      </section>
+
+      <section class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>用户 ID</th>
+              <th>连接状态</th>
+              <th>执行状态</th>
+              <th>最后活动</th>
+              <th>最近提交</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div id="empty" class="empty" hidden>当前没有会话。</div>
+      </section>
+    </div>
+
+    <script>
+      const rows = document.getElementById('rows')
+      const empty = document.getElementById('empty')
+      const summary = document.getElementById('summary')
+
+      function pillClass(value) {
+        if (value === 'running' || value === 'waiting_input' || value === 'reconnecting') return 'pill warn'
+        if (value === 'blocked' || value === 'terminated' || value === 'failed') return 'pill danger'
+        return 'pill'
+      }
+
+      function formatTime(value) {
+        if (!value) return '-'
+        return new Date(value).toLocaleString()
+      }
+
+      async function callAction(url) {
+        const response = await fetch(url, { method: 'POST' })
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}))
+          throw new Error(data.error || '操作失败')
+        }
+        await refresh()
+      }
+
+      function renderSession(session) {
+        const latest = session.latestSubmission
+        const tr = document.createElement('tr')
+        tr.innerHTML = `
+          <td><strong>${session.userId}</strong><br /><small>${session.submissionCount} 次提交</small></td>
+          <td><span class="${pillClass(session.connectionState)}">${session.connectionState}</span></td>
+          <td><span class="${pillClass(session.executionState)}">${session.executionState}</span></td>
+          <td>${formatTime(session.lastSeenAt)}</td>
+          <td>
+            ${latest ? `<div><strong>${latest.outcome}</strong> · ${formatTime(latest.createdAt)}</div><pre>${escapeHtml(latest.code)}</pre>` : '<span class="meta">暂无提交</span>'}
+          </td>
+          <td></td>
+        `
+
+        const actionCell = tr.lastElementChild
+
+        const stopButton = document.createElement('button')
+        stopButton.className = 'stop'
+        stopButton.textContent = '强制停止'
+        stopButton.disabled = !['running', 'waiting_input'].includes(session.executionState)
+        stopButton.onclick = async () => callAction(`/api/admin/users/${encodeURIComponent(session.userId)}/stop`)
+        actionCell.appendChild(stopButton)
+
+        const toggleButton = document.createElement('button')
+        toggleButton.className = session.blocked ? 'unblock' : 'block'
+        toggleButton.textContent = session.blocked ? '解除屏蔽' : '屏蔽用户'
+        toggleButton.onclick = async () => {
+          const action = session.blocked ? 'unblock' : 'block'
+          await callAction(`/api/admin/users/${encodeURIComponent(session.userId)}/${action}`)
+        }
+        actionCell.appendChild(toggleButton)
+
+        return tr
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+      }
+
+      async function refresh() {
+        const response = await fetch('/api/admin/sessions')
+        const data = await response.json()
+        const sessions = data.sessions || []
+        rows.innerHTML = ''
+        empty.hidden = sessions.length > 0
+        summary.textContent = `当前共 ${sessions.length} 个用户会话，${sessions.filter(item => item.connectionState === 'connected').length} 个处于 connected。`
+        for (const session of sessions) {
+          rows.appendChild(renderSession(session))
+        }
+      }
+
+      refresh().catch((error) => {
+        summary.textContent = error.message
+      })
+      setInterval(() => {
+        refresh().catch((error) => {
+          summary.textContent = error.message
+        })
+      }, 5000)
+    </script>
+  </body>
+  </html>

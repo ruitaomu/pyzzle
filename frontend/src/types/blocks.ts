@@ -62,7 +62,7 @@ export interface IfChainInfo {
 }
 
 const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: string[]; hasChildren: boolean }> = [
-  { type: 'assign', label: '赋值', inlinePlaceholders: ['变量', '值'], hasChildren: false },
+  { type: 'assign', label: '=', inlinePlaceholders: ['变量', '值'], hasChildren: false },
   { type: 'if', label: 'if', inlinePlaceholders: ['condition'], hasChildren: true },
   { type: 'elif', label: 'elif', inlinePlaceholders: ['condition'], hasChildren: true },
   { type: 'else', label: 'else', inlinePlaceholders: [], hasChildren: true },
@@ -77,7 +77,7 @@ const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: 
   { type: 'condAnd', label: 'and', inlinePlaceholders: ['left', 'right'], hasChildren: false },
   { type: 'condOr', label: 'or', inlinePlaceholders: ['left', 'right'], hasChildren: false },
   { type: 'condNot', label: 'not', inlinePlaceholders: ['value'], hasChildren: false },
-  { type: 'randomRandInt', label: 'random.randInt()', inlinePlaceholders: ['arg1', 'arg2'], hasChildren: false },
+  { type: 'randomRandInt', label: 'random.randint()', inlinePlaceholders: ['arg1', 'arg2'], hasChildren: false },
   { type: 'turtleForward', label: 'turtle.forward()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleBackward', label: 'turtle.backward()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleLeft', label: 'turtle.left()', inlinePlaceholders: ['参数'], hasChildren: false },

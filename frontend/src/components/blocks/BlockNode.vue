@@ -300,7 +300,7 @@ function isMinecraftBlock(blockType: BlockType): boolean {
         <span class="label">)</span>
       </template>
       <template v-else-if="block.type === 'randomRandInt'">
-        <span class="label">random.randInt(</span>
+        <span class="label">random.randint(</span>
         <InlineSlot
           v-if="block.inlineSlots[0]"
           :slot-data="block.inlineSlots[0]"

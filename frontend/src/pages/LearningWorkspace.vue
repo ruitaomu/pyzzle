@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue'
 import BlockPalette from '../components/blocks/BlockPalette.vue'
+import ConsolePanel from '../components/console/ConsolePanel.vue'
 import CodeCanvas from '../components/editor/CodeCanvas.vue'
 import InputPromptModal from '../components/console/InputPromptModal.vue'
 import { useEditorStore } from '../stores/editorStore'
@@ -12,18 +13,23 @@ const runStore = useRunSessionStore()
 
 const pendingPromptText = computed(() => runStore.pendingPrompt?.promptText ?? '')
 const isPromptOpen = computed(() => !!runStore.pendingPrompt)
+const runButtonLabel = computed(() => (runStore.isRunInProgress ? '停止' : '运行'))
+const runButtonClass = computed(() => (runStore.isRunInProgress ? 'stop' : 'run'))
+const runButtonDisabled = computed(() => !runStore.isRunInProgress && !runStore.canRun)
 
 function addRoot(type: BlockType) {
   editorStore.addBlockToRoot(type)
 }
 
 function runCode() {
-  const code = editorStore.codeText.trim()
-  runStore.startRun(code || 'print("Hello")')
-}
+  if (runStore.isRunInProgress) {
+    runStore.stopRun()
+    return
+  }
 
-function stopRun() {
-  runStore.stopRun()
+  runStore.clearConsole()
+  const code = editorStore.codeText.trim()
+  runStore.startRun(code || '# 代码区为空')
 }
 
 function submitPrompt(value: string) {
@@ -33,7 +39,6 @@ function submitPrompt(value: string) {
 function clearAll() {
   editorStore.clearWorkspace()
   runStore.clearConsole()
-  runStore.resetRunStateOnRefresh()
 }
 
 function onTrashDrop(event: DragEvent) {
@@ -50,18 +55,18 @@ function onTrashDrop(event: DragEvent) {
 }
 
 function onBeforeUnload() {
-  runStore.resetRunStateOnRefresh()
+  runStore.shutdownSession()
 }
 
 onMounted(() => {
   editorStore.initFromStorage()
-  runStore.attachRunner()
-  runStore.resetRunStateOnRefresh()
+  runStore.initSession()
   window.addEventListener('beforeunload', onBeforeUnload)
 })
 
 onUnmounted(() => {
   window.removeEventListener('beforeunload', onBeforeUnload)
+  runStore.shutdownSession()
 })
 </script>
 
@@ -71,10 +76,12 @@ onUnmounted(() => {
       <div>
         <h1>Pyzzle 学习工作台</h1>
         <p>拖拽模块 + 手工输入，一页完成编写与运行</p>
+        <p class="connection" :class="runStore.connectionState">{{ runStore.connectionDisplay }}</p>
       </div>
       <div class="actions">
-        <button type="button" class="run" @click="runCode">运行</button>
-        <button type="button" class="stop" @click="stopRun">停止</button>
+        <button type="button" :class="runButtonClass" :disabled="runButtonDisabled" @click="runCode">
+          {{ runButtonLabel }}
+        </button>
         <button type="button" class="clear" @click="clearAll">清除</button>
       </div>
     </header>
@@ -94,6 +101,8 @@ onUnmounted(() => {
         @move-child="editorStore.moveBlockToChildren($event.blockId, $event.draggedBlockId, $event.index)"
         @range-arity-change="editorStore.setRangeArity($event.blockId, $event.arity)"
       />
+
+      <ConsolePanel :lines="runStore.lines" :run-state="runStore.runState" :connection-state="runStore.connectionState" />
     </section>
 
     <button
@@ -145,6 +154,33 @@ p {
   color: #24445c;
 }
 
+.connection {
+  margin-top: 8px;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #9ec5d8;
+  background: #e8f7ff;
+  color: #1c4f68;
+}
+
+.connection.reconnecting {
+  border-color: #f7bc6f;
+  background: #fff7e8;
+  color: #9a4d00;
+}
+
+.connection.blocked,
+.connection.terminated {
+  border-color: #f59ea0;
+  background: #fff1f1;
+  color: #912018;
+}
+
 .actions {
   display: flex;
   gap: 8px;
@@ -156,6 +192,11 @@ p {
   border: 2px solid var(--stroke);
   padding: 0 14px;
   font-weight: 800;
+}
+
+.actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .run {
@@ -172,7 +213,7 @@ p {
 
 .content {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(420px, 2.3fr);
+  grid-template-columns: minmax(220px, 1fr) minmax(420px, 2.3fr) minmax(280px, 1.2fr);
   gap: 12px;
   align-items: start;
 }
