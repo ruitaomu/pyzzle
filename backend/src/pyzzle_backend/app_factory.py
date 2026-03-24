@@ -177,16 +177,18 @@ def _register_socket_handlers(manager: SessionManager) -> None:
     def handle_run_start(payload=None):
         payload = payload or {}
         user_id = str(payload.get('userId', '')).strip()
+        username = str(payload.get('username', '')).strip()
         code = str(payload.get('code', ''))
         logger.info(
-            'WS run_start sid=%s user=%s code_len=%d\n-----CODE BEGIN-----\n%s\n-----CODE END-----',
+            'WS run_start sid=%s user=%s username=%s code_len=%d\n-----CODE BEGIN-----\n%s\n-----CODE END-----',
             request.sid,
             user_id,
+            username,
             len(code),
             code,
         )
         try:
-            manager.start_run(user_id, code)
+            manager.start_run(user_id, code, username=username)
         except ValueError as exc:
             logger.warning('WS run_start rejected user=%s: %s', user_id, exc)
             emit('run_failed', {'runSessionId': None, 'message': str(exc)})

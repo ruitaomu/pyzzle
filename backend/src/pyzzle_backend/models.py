@@ -20,6 +20,7 @@ def utc_now() -> datetime:
 class CodeSubmission:
     submission_id: str
     code: str
+    submitter_name: str | None = None
     created_at: datetime = field(default_factory=utc_now)
     outcome: str = 'pending'
     finished_at: datetime | None = None
@@ -29,6 +30,7 @@ class CodeSubmission:
         return {
             'submissionId': self.submission_id,
             'code': self.code,
+            'submitterName': self.submitter_name,
             'createdAt': self.created_at.isoformat(),
             'outcome': self.outcome,
             'finishedAt': self.finished_at.isoformat() if self.finished_at else None,
@@ -47,6 +49,7 @@ class ActiveRun:
 @dataclass(slots=True)
 class UserSession:
     user_id: str
+    display_name: str | None = None
     connection_state: ConnectionState = 'terminated'
     execution_state: ExecutionState = 'idle'
     blocked: bool = False
@@ -68,6 +71,7 @@ class UserSession:
         latest = self.latest_submission()
         return {
             'userId': self.user_id,
+            'displayName': self.display_name,
             'connectionState': self.connection_state,
             'executionState': self.execution_state,
             'blocked': self.blocked,

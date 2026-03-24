@@ -131,6 +131,7 @@
           <thead>
             <tr>
               <th>用户 ID</th>
+              <th>姓名</th>
               <th>连接状态</th>
               <th>执行状态</th>
               <th>最后活动</th>
@@ -174,6 +175,7 @@
         const tr = document.createElement('tr')
         tr.innerHTML = `
           <td><strong>${session.userId}</strong><br /><small>${session.submissionCount} 次提交</small></td>
+          <td>${session.displayName ? `<strong>${escapeHtml(session.displayName)}</strong>` : '<span class="meta">未填写</span>'}</td>
           <td><span class="${pillClass(session.connectionState)}">${session.connectionState}</span></td>
           <td><span class="${pillClass(session.executionState)}">${session.executionState}</span></td>
           <td>${formatTime(session.lastSeenAt)}</td>

@@ -8,6 +8,12 @@ interface EditorState {
   hasManualEdit: boolean
 }
 
+export interface EditorExportPayload {
+  blocks: BlockModel[]
+  codeText: string
+  hasManualEdit: boolean
+}
+
 const STORAGE_KEY = 'pyzzle-student-editor-v1'
 
 export const useEditorStore = defineStore('editor', {
@@ -40,6 +46,26 @@ export const useEditorStore = defineStore('editor', {
         hasManualEdit: this.hasManualEdit,
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+    },
+    exportSnapshot(): EditorExportPayload {
+      return {
+        blocks: this.blocks,
+        codeText: this.codeText,
+        hasManualEdit: this.hasManualEdit,
+      }
+    },
+    importSnapshot(payload: EditorExportPayload) {
+      this.blocks = payload.blocks ?? []
+      this.blocks.forEach((block) => normalizeBlockTree(block))
+      this.codeText = payload.codeText ?? ''
+      this.hasManualEdit = payload.hasManualEdit ?? false
+      this.persist()
+    },
+    loadPythonCode(code: string) {
+      this.blocks = []
+      this.codeText = code
+      this.hasManualEdit = true
+      this.persist()
     },
     addBlockToRoot(type: BlockType, index?: number) {
       if (isInlineOnlyBlockType(type) || isLoopControlBlockType(type)) {

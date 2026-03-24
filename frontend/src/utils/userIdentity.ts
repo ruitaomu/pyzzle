@@ -1,4 +1,5 @@
 const COOKIE_NAME = 'pyzzle_user_id'
+const NAME_COOKIE_NAME = 'pyzzle_user_name'
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365
 
 function readCookie(name: string): string | null {
@@ -29,4 +30,13 @@ export function ensureUserId(): string {
   const next = createRandomUserId()
   writeCookie(COOKIE_NAME, next)
   return next
+}
+
+export function getUserName(): string {
+  return readCookie(NAME_COOKIE_NAME) ?? ''
+}
+
+export function setUserName(name: string): void {
+  const normalized = name.trim()
+  writeCookie(NAME_COOKIE_NAME, normalized)
 }

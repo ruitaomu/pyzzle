@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import BlockPalette from '../components/blocks/BlockPalette.vue'
 import ConsolePanel from '../components/console/ConsolePanel.vue'
 import CodeCanvas from '../components/editor/CodeCanvas.vue'
@@ -7,6 +7,7 @@ import InputPromptModal from '../components/console/InputPromptModal.vue'
 import { useEditorStore } from '../stores/editorStore'
 import { useRunSessionStore } from '../stores/runSessionStore'
 import type { BlockType } from '../types/blocks'
+import { getUserName, setUserName } from '../utils/userIdentity'
 
 const editorStore = useEditorStore()
 const runStore = useRunSessionStore()
@@ -16,6 +17,8 @@ const isPromptOpen = computed(() => !!runStore.pendingPrompt)
 const runButtonLabel = computed(() => (runStore.isRunInProgress ? '停止' : '运行'))
 const runButtonClass = computed(() => (runStore.isRunInProgress ? 'stop' : 'run'))
 const runButtonDisabled = computed(() => !runStore.isRunInProgress && !runStore.canRun)
+const userName = ref('')
+const blockFileInputRef = ref<HTMLInputElement | null>(null)
 
 function addRoot(type: BlockType) {
   editorStore.addBlockToRoot(type)
@@ -29,7 +32,51 @@ function runCode() {
 
   runStore.clearConsole()
   const code = editorStore.codeText.trim()
-  runStore.startRun(code || '# 代码区为空')
+  runStore.startRun(code || '# 代码区为空', userName.value.trim())
+}
+
+function onUserNameChange() {
+  setUserName(userName.value)
+}
+
+function saveProgram() {
+  const snapshot = editorStore.exportSnapshot()
+  const payload = JSON.stringify(snapshot, null, 2)
+  downloadText('pyzzle-program.pyz', payload, 'application/json')
+}
+
+function triggerLoadProgram() {
+  blockFileInputRef.value?.click()
+}
+
+async function onLoadProgramChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) {
+    return
+  }
+  try {
+    const raw = await file.text()
+    const parsed = JSON.parse(raw)
+    editorStore.importSnapshot(parsed)
+    runStore.lines.push({ id: `${Date.now()}-load-program`, stream: 'system', text: '已读取程序文件。', ts: Date.now() })
+  } catch {
+    runStore.lines.push({ id: `${Date.now()}-load-program-failed`, stream: 'stderr', text: '程序文件无效，读取失败。', ts: Date.now() })
+  } finally {
+    input.value = ''
+  }
+}
+
+function downloadText(fileName: string, content: string, mimeType: string) {
+  const blob = new Blob([content], { type: `${mimeType};charset=utf-8` })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 function submitPrompt(value: string) {
@@ -60,6 +107,7 @@ function onBeforeUnload() {
 
 onMounted(() => {
   editorStore.initFromStorage()
+  userName.value = getUserName()
   runStore.initSession()
   window.addEventListener('beforeunload', onBeforeUnload)
 })
@@ -76,6 +124,10 @@ onUnmounted(() => {
       <div>
         <h1>Pyzzle 学习工作台</h1>
         <p>拖拽模块 + 手工输入，一页完成编写与运行</p>
+        <div class="user-name-row">
+          <label for="user-name">姓名</label>
+          <input id="user-name" v-model="userName" type="text" maxlength="32" placeholder="可选，留空使用 user_id" @change="onUserNameChange" @blur="onUserNameChange" />
+        </div>
         <p class="connection" :class="runStore.connectionState">{{ runStore.connectionDisplay }}</p>
       </div>
       <div class="actions">
@@ -83,6 +135,9 @@ onUnmounted(() => {
           {{ runButtonLabel }}
         </button>
         <button type="button" class="clear" @click="clearAll">清除</button>
+        <button type="button" class="save" @click="saveProgram">保存程序</button>
+        <button type="button" class="load" @click="triggerLoadProgram">读取程序</button>
+        <input ref="blockFileInputRef" type="file" accept=".pyz,application/json" class="file-input" @change="onLoadProgramChange" />
       </div>
     </header>
 
@@ -183,7 +238,9 @@ p {
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .actions button {
@@ -209,6 +266,40 @@ p {
 
 .clear {
   background: #ffd98e;
+}
+
+.save {
+  background: #d9f3ff;
+}
+
+.load {
+  background: #e8ffd8;
+}
+
+.user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.user-name-row label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #24445c;
+}
+
+.user-name-row input {
+  min-height: 30px;
+  border-radius: 10px;
+  border: 1px solid #9ec5d8;
+  padding: 0 10px;
+  font-size: 13px;
+  min-width: 220px;
+}
+
+.file-input {
+  display: none;
 }
 
 .content {

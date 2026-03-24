@@ -375,7 +375,7 @@ export const useRunSessionStore = defineStore('runSession', {
       }
     },
 
-    startRun(code: string) {
+    startRun(code: string, username = '') {
       if (!this.userId) {
         this.lines.push(createLine('system', '尚未初始化用户标识，无法运行。'))
         return
@@ -407,10 +407,11 @@ export const useRunSessionStore = defineStore('runSession', {
       this.pendingPrompt = null
       logEvent('emit run_start', {
         userId: this.userId,
+        username,
         codeLen: code.length,
         code: previewCode(code),
       })
-      socketSingleton.emit('run_start', { userId: this.userId, code })
+      socketSingleton.emit('run_start', { userId: this.userId, username, code })
     },
     stopRun() {
       if (!this.userId || !socketSingleton || !socketSingleton.connected) {

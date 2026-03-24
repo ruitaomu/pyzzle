@@ -100,7 +100,7 @@ class SessionManager:
         logger.info('request_reconnect user=%s snapshot=%s', user_id, snapshot)
         return snapshot
 
-    def start_run(self, user_id: str, code: str) -> dict:
+    def start_run(self, user_id: str, code: str, username: str | None = None) -> dict:
         with self._lock:
             session = self.get_or_create(user_id)
             if session.blocked:
@@ -110,7 +110,15 @@ class SessionManager:
             if session.execution_state not in ('idle', 'finished', 'failed', 'interrupted'):
                 raise ValueError('A program is already active for this user.')
 
-            submission = CodeSubmission(submission_id=f'sub-{uuid.uuid4().hex[:8]}', code=code)
+            normalized_name = (username or '').strip() or None
+            if normalized_name:
+                session.display_name = normalized_name
+
+            submission = CodeSubmission(
+                submission_id=f'sub-{uuid.uuid4().hex[:8]}',
+                code=code,
+                submitter_name=session.display_name,
+            )
             submission.run_session_id = f'run-{uuid.uuid4().hex[:8]}'
             session.submissions.append(submission)
             session.submissions = session.submissions[-self.max_submissions_per_user :]
@@ -140,8 +148,9 @@ class SessionManager:
             run_session_id = submission.run_session_id
             snapshot = session.to_snapshot()
         logger.info(
-            'start_run accepted user=%s run=%s submission=%s code_len=%d',
+            'start_run accepted user=%s username=%s run=%s submission=%s code_len=%d',
             user_id,
+            session.display_name,
             run_session_id,
             submission.submission_id,
             len(code),
