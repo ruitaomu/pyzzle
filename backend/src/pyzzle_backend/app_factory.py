@@ -141,7 +141,6 @@ def _register_socket_handlers(manager: SessionManager) -> None:
         emit('connect_ack', {'userId': user_id})
         if snapshot['connectionState'] == 'blocked':
             emit('connection_blocked', {'userId': user_id})
-            socketio.start_background_task(lambda: socketio.server.disconnect(request.sid, namespace='/ws'))
 
     @socketio.on('disconnect', namespace='/ws')
     def handle_disconnect():
@@ -191,6 +190,25 @@ def _register_socket_handlers(manager: SessionManager) -> None:
             manager.start_run(user_id, code, username=username)
         except ValueError as exc:
             logger.warning('WS run_start rejected user=%s: %s', user_id, exc)
+            emit('run_failed', {'runSessionId': None, 'message': str(exc)})
+
+    @socketio.on('code_submit', namespace='/ws')
+    def handle_code_submit(payload=None):
+        payload = payload or {}
+        user_id = str(payload.get('userId', '')).strip()
+        username = str(payload.get('username', '')).strip()
+        code = str(payload.get('code', ''))
+        logger.info(
+            'WS code_submit sid=%s user=%s username=%s code_len=%d',
+            request.sid,
+            user_id,
+            username,
+            len(code),
+        )
+        try:
+            manager.submit_code(user_id, code, username=username)
+        except ValueError as exc:
+            logger.warning('WS code_submit rejected user=%s: %s', user_id, exc)
             emit('run_failed', {'runSessionId': None, 'message': str(exc)})
 
     @socketio.on('run_stop', namespace='/ws')

@@ -84,6 +84,9 @@ export const useRunSessionStore = defineStore('runSession', {
       }
       return state.runState === 'idle' || state.runState === 'finished' || state.runState === 'failed' || state.runState === 'interrupted'
     },
+    canSubmit(state): boolean {
+      return state.connectionState === 'connected' || state.connectionState === 'blocked'
+    },
     connectionDisplay(state): string {
       if (state.connectionState === 'reconnecting') {
         return '正在重连后端'
@@ -192,6 +195,11 @@ export const useRunSessionStore = defineStore('runSession', {
         this.runState = 'running'
         this.lines.push(createLine('system', `会话已启动: ${payload.runSessionId}`))
         logEvent('socket run_ack', payload)
+      })
+
+      socketSingleton.on('code_submit_ack', (payload: { submissionId: string }) => {
+        this.lines.push(createLine('system', `代码已提交: ${payload.submissionId}`))
+        logEvent('socket code_submit_ack', payload)
       })
 
       socketSingleton.on('output', (payload: { runSessionId: string; stream: 'stdout' | 'stderr'; chunk: string }) => {
@@ -412,6 +420,33 @@ export const useRunSessionStore = defineStore('runSession', {
         code: previewCode(code),
       })
       socketSingleton.emit('run_start', { userId: this.userId, username, code })
+    },
+    submitCode(code: string, username = '') {
+      if (!this.userId) {
+        this.lines.push(createLine('system', '尚未初始化用户标识，无法提交。'))
+        return
+      }
+
+      if (!this.canSubmit) {
+        this.lines.push(createLine('system', '当前连接不可提交，请等待连接恢复。'))
+        return
+      }
+
+      if (!socketSingleton || !socketSingleton.connected) {
+        this.connectionState = 'reconnecting'
+        this.startReconnectPolling()
+        this.lines.push(createLine('system', '后端未连接，正在重连。'))
+        logEvent('submitCode rejected: socket not connected')
+        return
+      }
+
+      logEvent('emit code_submit', {
+        userId: this.userId,
+        username,
+        codeLen: code.length,
+        code: previewCode(code),
+      })
+      socketSingleton.emit('code_submit', { userId: this.userId, username, code })
     },
     stopRun() {
       if (!this.userId || !socketSingleton || !socketSingleton.connected) {

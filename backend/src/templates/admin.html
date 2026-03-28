@@ -116,6 +116,80 @@
         color: var(--muted);
         padding: 24px 0 8px;
       }
+
+      .view-btn {
+        border-color: #84b6f4;
+        background: #eef6ff;
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgb(15 23 42 / 56%);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+      }
+
+      .modal-backdrop.open {
+        display: flex;
+      }
+
+      .modal {
+        width: min(900px, 92vw);
+        max-height: 84vh;
+        background: #fff;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        box-shadow: 0 20px 50px rgb(16 24 40 / 25%);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid #e4ecef;
+      }
+
+      .modal-title {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .code-wrap {
+        padding: 12px;
+        min-height: 280px;
+        height: 56vh;
+      }
+
+      .code-fallback {
+        margin: 0;
+        height: 100%;
+        overflow: auto;
+        border: 1px solid #e1ecf0;
+        border-radius: 10px;
+        background: #f7fbfc;
+        padding: 12px;
+        font-family: "Cascadia Code", Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.55;
+        white-space: pre;
+        display: none;
+      }
+
+      .code-fallback .kw { color: #0f4c81; font-weight: 700; }
+      .code-fallback .str { color: #6a1b9a; }
+      .code-fallback .num { color: #8d6e63; }
+      .code-fallback .com { color: #4f7d6b; font-style: italic; }
     </style>
   </head>
   <body>
@@ -145,10 +219,31 @@
       </section>
     </div>
 
+    <div id="codeModalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true">
+      <section class="modal">
+        <header class="modal-header">
+          <h2 id="codeModalTitle" class="modal-title">提交代码</h2>
+          <div class="modal-actions">
+            <button id="copyCodeBtn" type="button">复制</button>
+            <button id="closeCodeModalBtn" type="button">关闭</button>
+          </div>
+        </header>
+        <div class="code-wrap">
+          <pre id="viewerFallback" class="code-fallback"></pre>
+        </div>
+      </section>
+    </div>
+
     <script>
       const rows = document.getElementById('rows')
       const empty = document.getElementById('empty')
       const summary = document.getElementById('summary')
+      const codeModalBackdrop = document.getElementById('codeModalBackdrop')
+      const codeModalTitle = document.getElementById('codeModalTitle')
+      const copyCodeBtn = document.getElementById('copyCodeBtn')
+      const closeCodeModalBtn = document.getElementById('closeCodeModalBtn')
+      const viewerFallback = document.getElementById('viewerFallback')
+      let currentModalCode = ''
 
       function pillClass(value) {
         if (value === 'running' || value === 'waiting_input' || value === 'reconnecting') return 'pill warn'
@@ -180,10 +275,20 @@
           <td><span class="${pillClass(session.executionState)}">${session.executionState}</span></td>
           <td>${formatTime(session.lastSeenAt)}</td>
           <td>
-            ${latest ? `<div><strong>${latest.outcome}</strong> · ${formatTime(latest.createdAt)}</div><pre>${escapeHtml(latest.code)}</pre>` : '<span class="meta">暂无提交</span>'}
+            ${latest ? `<div><strong>${latest.outcome}</strong> · ${formatTime(latest.createdAt)}</div>` : '<span class="meta">暂无提交</span>'}
           </td>
           <td></td>
         `
+
+        const latestCell = tr.children[5]
+        if (latest) {
+          const viewButton = document.createElement('button')
+          viewButton.type = 'button'
+          viewButton.className = 'view-btn'
+          viewButton.textContent = '查看'
+          viewButton.onclick = () => openCodeModal(session, latest)
+          latestCell.appendChild(viewButton)
+        }
 
         const actionCell = tr.lastElementChild
 
@@ -212,6 +317,63 @@
           .replaceAll('<', '&lt;')
           .replaceAll('>', '&gt;')
       }
+
+      function renderFallbackCode(code) {
+        const escaped = escapeHtml(code)
+        const keywordPattern = /\b(def|class|return|if|elif|else|for|while|break|continue|try|except|finally|with|as|import|from|pass|raise|True|False|None|and|or|not|in|is)\b/g
+        const numberPattern = /\b\d+(?:\.\d+)?\b/g
+        const stringPattern = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g
+        const commentPattern = /(#[^\n]*)/g
+
+        let html = escaped
+        html = html.replace(stringPattern, '<span class="str">$1</span>')
+        html = html.replace(commentPattern, '<span class="com">$1</span>')
+        html = html.replace(keywordPattern, '<span class="kw">$1</span>')
+        html = html.replace(numberPattern, '<span class="num">$&</span>')
+        viewerFallback.innerHTML = html
+      }
+
+      function openCodeModal(session, submission) {
+        currentModalCode = submission.code || ''
+        codeModalTitle.textContent = `提交代码 · ${session.displayName || session.userId}`
+        viewerFallback.style.display = 'block'
+        renderFallbackCode(currentModalCode)
+        codeModalBackdrop.classList.add('open')
+      }
+
+      function closeCodeModal() {
+        codeModalBackdrop.classList.remove('open')
+      }
+
+      copyCodeBtn.addEventListener('click', async () => {
+        if (!currentModalCode) {
+          return
+        }
+        try {
+          await navigator.clipboard.writeText(currentModalCode)
+          copyCodeBtn.textContent = '已复制'
+          window.setTimeout(() => {
+            copyCodeBtn.textContent = '复制'
+          }, 1200)
+        } catch {
+          copyCodeBtn.textContent = '复制失败'
+          window.setTimeout(() => {
+            copyCodeBtn.textContent = '复制'
+          }, 1200)
+        }
+      })
+
+      closeCodeModalBtn.addEventListener('click', closeCodeModal)
+      codeModalBackdrop.addEventListener('click', (event) => {
+        if (event.target === codeModalBackdrop) {
+          closeCodeModal()
+        }
+      })
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && codeModalBackdrop.classList.contains('open')) {
+          closeCodeModal()
+        }
+      })
 
       async function refresh() {
         const response = await fetch('/api/admin/sessions')

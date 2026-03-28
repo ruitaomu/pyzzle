@@ -161,6 +161,38 @@ class SessionManager:
         runner.start()
         return snapshot
 
+    def submit_code(self, user_id: str, code: str, username: str | None = None) -> dict:
+        with self._lock:
+            session = self.get_or_create(user_id)
+            if session.connection_state not in ('connected', 'blocked'):
+                raise ValueError('The user is not connected to the backend.')
+
+            normalized_name = (username or '').strip() or None
+            if normalized_name:
+                session.display_name = normalized_name
+
+            submission = CodeSubmission(
+                submission_id=f'sub-{uuid.uuid4().hex[:8]}',
+                code=code,
+                submitter_name=session.display_name,
+                outcome='submitted',
+            )
+            session.submissions.append(submission)
+            session.submissions = session.submissions[-self.max_submissions_per_user :]
+            session.touch()
+            snapshot = session.to_snapshot()
+
+        logger.info(
+            'submit_code accepted user=%s username=%s submission=%s code_len=%d',
+            user_id,
+            session.display_name,
+            submission.submission_id,
+            len(code),
+        )
+        self._emit(user_id, 'code_submit_ack', {'submissionId': submission.submission_id})
+        self._emit(user_id, 'status_snapshot', snapshot)
+        return snapshot
+
     def submit_input(self, user_id: str, prompt_id: str, value: str) -> dict:
         with self._lock:
             session = self.get_or_create(user_id)
@@ -211,13 +243,11 @@ class SessionManager:
 
     def block_user(self, user_id: str) -> dict:
         runner = None
-        sid = None
         with self._lock:
             session = self.get_or_create(user_id)
             session.blocked = True
             session.connection_state = 'blocked'
             session.touch()
-            sid = session.connected_sid
             if session.active_run and session.execution_state in ('running', 'waiting_input'):
                 runner = session.active_run.runner
             snapshot = session.to_snapshot()
@@ -227,8 +257,6 @@ class SessionManager:
         self._emit(user_id, 'status_snapshot', snapshot)
         if runner is not None:
             runner.stop('teacher:block')
-        if sid is not None:
-            self._disconnect(sid)
         return snapshot
 
     def unblock_user(self, user_id: str) -> dict:

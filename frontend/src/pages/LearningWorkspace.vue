@@ -17,6 +17,7 @@ const isPromptOpen = computed(() => !!runStore.pendingPrompt)
 const runButtonLabel = computed(() => (runStore.isRunInProgress ? '停止' : '运行'))
 const runButtonClass = computed(() => (runStore.isRunInProgress ? 'stop' : 'run'))
 const runButtonDisabled = computed(() => !runStore.isRunInProgress && !runStore.canRun)
+const submitButtonDisabled = computed(() => !runStore.canSubmit || runStore.isRunInProgress)
 const userName = ref('')
 const blockFileInputRef = ref<HTMLInputElement | null>(null)
 
@@ -33,6 +34,11 @@ function runCode() {
   runStore.clearConsole()
   const code = editorStore.codeText.trim()
   runStore.startRun(code || '# 代码区为空', userName.value.trim())
+}
+
+function submitCode() {
+  const code = editorStore.codeText.trim()
+  runStore.submitCode(code || '# 代码区为空', userName.value.trim())
 }
 
 function onUserNameChange() {
@@ -131,6 +137,7 @@ onUnmounted(() => {
         <p class="connection" :class="runStore.connectionState">{{ runStore.connectionDisplay }}</p>
       </div>
       <div class="actions">
+        <button type="button" class="submit" :disabled="submitButtonDisabled" @click="submitCode">提交</button>
         <button type="button" :class="runButtonClass" :disabled="runButtonDisabled" @click="runCode">
           {{ runButtonLabel }}
         </button>
@@ -274,6 +281,10 @@ p {
 
 .load {
   background: #e8ffd8;
+}
+
+.submit {
+  background: #c7f9d8;
 }
 
 .user-name-row {
