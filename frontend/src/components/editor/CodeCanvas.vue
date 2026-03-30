@@ -272,8 +272,8 @@ watch(
 }
 
 .insert-zone {
-  height: 14px;
-  border-radius: 8px;
+  min-height: 24px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   color: transparent;

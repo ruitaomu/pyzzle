@@ -627,8 +627,8 @@ function isMinecraftBlock(blockType: BlockType): boolean {
 }
 
 .insert-zone {
-  height: 12px;
-  border-radius: 8px;
+  min-height: 24px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   color: transparent;
