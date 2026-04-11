@@ -213,8 +213,15 @@ export const useRunSessionStore = defineStore('runSession', {
       })
 
       socketSingleton.on('input_request', (payload: { runSessionId: string; promptId: string; promptText: string }) => {
-        if (payload.runSessionId !== this.runSessionId) {
+        const isCurrentRun = payload.runSessionId === this.runSessionId
+        const isRecentRun = payload.runSessionId === this.lastRunSessionId
+        const mayArriveBeforeRunAck = !this.runSessionId && this.runState === 'running'
+        if (!isCurrentRun && !isRecentRun && !mayArriveBeforeRunAck) {
           return
+        }
+        if (!this.runSessionId) {
+          this.runSessionId = payload.runSessionId
+          this.lastRunSessionId = payload.runSessionId
         }
         this.runState = 'waiting_input'
         this.pendingPrompt = {
@@ -372,7 +379,7 @@ export const useRunSessionStore = defineStore('runSession', {
       if (snapshot.runSessionId) {
         this.lastRunSessionId = snapshot.runSessionId
       }
-      if (snapshot.pendingPromptId && snapshot.pendingPromptText && snapshot.runSessionId) {
+      if (snapshot.pendingPromptId && snapshot.runSessionId && snapshot.pendingPromptText !== null) {
         this.pendingPrompt = {
           runSessionId: snapshot.runSessionId,
           promptId: snapshot.pendingPromptId,

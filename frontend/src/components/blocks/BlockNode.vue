@@ -195,7 +195,7 @@ function isMinecraftBlock(blockType: BlockType): boolean {
     @dragstart="onDragStart"
   >
     <div class="block-head">
-      <span v-if="!isRangeBlock && block.type !== 'assign' && block.type !== 'print' && block.type !== 'input' && block.type !== 'int' && block.type !== 'randomRandInt' && block.type !== 'condAnd' && block.type !== 'condOr' && block.type !== 'condNot' && !isTurtleArgBlock(block.type) && block.type !== 'turtleDone' && !isMinecraftBlock(block.type)" class="label">{{ block.label }}</span>
+      <span v-if="!isRangeBlock && block.type !== 'assign' && block.type !== 'print' && block.type !== 'input' && block.type !== 'doubleQuote' && block.type !== 'int' && block.type !== 'randomRandInt' && block.type !== 'condAnd' && block.type !== 'condOr' && block.type !== 'condNot' && !isTurtleArgBlock(block.type) && block.type !== 'turtleDone' && !isMinecraftBlock(block.type)" class="label">{{ block.label }}</span>
       <span v-if="unmatchedBranch" class="chain-role-badge error">
         没有匹配的if
       </span>
@@ -286,6 +286,18 @@ function isMinecraftBlock(blockType: BlockType): boolean {
           @range-arity-change="emit('rangeArityChange', $event)"
         />
         <span class="label">)</span>
+      </template>
+      <template v-else-if="block.type === 'doubleQuote'">
+        <span class="label">"</span>
+        <InlineSlot
+          v-if="block.inlineSlots[0]"
+          :slot-data="block.inlineSlots[0]"
+          :required="false"
+          @drop-block="emit('dropInline', $event)"
+          @text-change="emit('inputInline', $event)"
+          @range-arity-change="emit('rangeArityChange', $event)"
+        />
+        <span class="label">"</span>
       </template>
       <template v-else-if="block.type === 'int'">
         <span class="label">int(</span>
@@ -659,7 +671,8 @@ function isMinecraftBlock(blockType: BlockType): boolean {
 }
 
 .type-print,
-.type-input {
+.type-input,
+.type-doubleQuote {
   background: linear-gradient(180deg, #fff9de 0%, #ffeaa6 100%);
 }
 

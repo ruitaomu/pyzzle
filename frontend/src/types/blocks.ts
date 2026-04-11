@@ -22,6 +22,7 @@ export type BlockType =
   | 'condNot'
   | 'print'
   | 'input'
+  | 'doubleQuote'
   | 'int'
   | 'randomRandInt'
   | 'assign'
@@ -72,6 +73,7 @@ const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: 
   { type: 'continue', label: 'continue', inlinePlaceholders: [], hasChildren: false },
   { type: 'print', label: 'print()', inlinePlaceholders: ['arg'], hasChildren: false },
   { type: 'input', label: 'input()', inlinePlaceholders: ['prompt'], hasChildren: false },
+  { type: 'doubleQuote', label: '"  "', inlinePlaceholders: ['文本'], hasChildren: false },
   { type: 'range', label: 'range()', inlinePlaceholders: ['stop'], hasChildren: false },
   { type: 'int', label: 'int()', inlinePlaceholders: ['arg'], hasChildren: false },
   { type: 'condAnd', label: 'and', inlinePlaceholders: ['left', 'right'], hasChildren: false },
@@ -130,6 +132,11 @@ export function applyVariableSlotRules(block: BlockModel): void {
 
   if ((block.type === 'if' || block.type === 'while') && block.inlineSlots[0]) {
     block.inlineSlots[0].acceptsConditionBlocks = true
+  }
+
+  if (block.type === 'doubleQuote' && block.inlineSlots[0]) {
+    block.inlineSlots[0].allowBlockDrop = false
+    block.inlineSlots[0].usePlaceholderAsDefault = false
   }
 
   if (block.type === 'assign' && block.inlineSlots[1]) {

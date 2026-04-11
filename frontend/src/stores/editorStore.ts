@@ -628,6 +628,9 @@ function renderBlock(node: BlockModel, depth: number): string {
   if (node.type === 'print') {
     return `${indent}print(${functionArgValues[0]})`
   }
+  if (node.type === 'doubleQuote') {
+    return `${indent}${toPythonStringLiteral(node.inlineSlots[0]?.textValue ?? '')}`
+  }
   return `${indent}input(${functionArgValues[0]})`
 }
 
@@ -660,6 +663,9 @@ function renderInlineBlock(node: BlockModel): string {
   }
   if (node.type === 'input') {
     return `input(${functionArgValues[0]})`
+  }
+  if (node.type === 'doubleQuote') {
+    return toPythonStringLiteral(node.inlineSlots[0]?.textValue ?? '')
   }
   if (node.type === 'minecraftConnect') {
     const arg = renderSlotValue(node.inlineSlots[0], false)
@@ -736,6 +742,10 @@ function renderSlotValue(slot: InlineSlotModel, allowPlaceholder: boolean): stri
   return slot.placeholder
 }
 
+function toPythonStringLiteral(value: string): string {
+  return JSON.stringify(value)
+}
+
 function adjustRangeSlots(currentSlots: InlineSlotModel[], arity: number): InlineSlotModel[] {
   const slotWithPlaceholder = (slot: InlineSlotModel | undefined, placeholder: string): InlineSlotModel => {
     if (slot) {
@@ -807,6 +817,7 @@ function containsAnyBlockType(node: BlockModel, targetTypes: BlockType[]): boole
 
 function isInlineOnlyBlockType(type: BlockType): boolean {
   return (
+    type === 'doubleQuote' ||
     type === 'range' ||
     type === 'range1' ||
     type === 'range2' ||
