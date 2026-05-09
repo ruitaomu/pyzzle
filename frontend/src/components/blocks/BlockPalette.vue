@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { BlockType } from '../../types/blocks'
-import { paletteBlocks } from '../../types/blocks'
+import { getFilteredPaletteBlocks } from '../../types/blocks'
+import { getFeatureConfig } from '../../config/features'
 
 const emit = defineEmits<{
   add: [type: BlockType]
 }>()
 
-const showTurtleBlocks = false
+const featureConfig = getFeatureConfig()
 const turtleOpen = ref(false)
 const minecraftOpen = ref(false)
 
@@ -26,13 +27,17 @@ const minecraftBlockTypes: BlockType[] = [
   'minecraftSetTilePos',
   'minecraftSetBlock',
   'minecraftGetBlock',
+  'minecraftSpawnEntity',
+  'minecraftSetRotation',
 ]
 
+const filteredPalette = computed(() => getFilteredPaletteBlocks(featureConfig))
+
 const commonBlocks = computed(
-  () => paletteBlocks.filter((item) => !turtleBlockTypes.includes(item.type) && !minecraftBlockTypes.includes(item.type)),
+  () => filteredPalette.value.filter((item) => !turtleBlockTypes.includes(item.type) && !minecraftBlockTypes.includes(item.type)),
 )
-const turtleBlocks = computed(() => paletteBlocks.filter((item) => turtleBlockTypes.includes(item.type)))
-const minecraftBlocks = computed(() => paletteBlocks.filter((item) => minecraftBlockTypes.includes(item.type)))
+const turtleBlocks = computed(() => filteredPalette.value.filter((item) => turtleBlockTypes.includes(item.type)))
+const minecraftBlocks = computed(() => filteredPalette.value.filter((item) => minecraftBlockTypes.includes(item.type)))
 
 function getPaletteTone(type: BlockType): 'base' | 'logic' | 'default' {
   if (type === 'condAnd' || type === 'condOr' || type === 'condNot') {
@@ -92,7 +97,7 @@ function toggleMinecraftGroup() {
       </div>
     </div>
 
-    <section v-if="showTurtleBlocks" class="turtle-section" :class="{ open: turtleOpen }">
+    <section v-if="featureConfig.enableTurtle" class="turtle-section" :class="{ open: turtleOpen }">
       <button type="button" class="group-toggle" @click="toggleTurtleGroup">
         <span class="toggle-label">Turtle</span>
         <span class="toggle-mark">{{ turtleOpen ? '-' : '+' }}</span>

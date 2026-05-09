@@ -12,6 +12,8 @@ export type BlockType =
   | 'minecraftSetTilePos'
   | 'minecraftSetBlock'
   | 'minecraftGetBlock'
+  | 'minecraftSpawnEntity'
+  | 'minecraftSetRotation'
   | 'turtleForward'
   | 'turtleBackward'
   | 'turtleLeft'
@@ -25,6 +27,7 @@ export type BlockType =
   | 'doubleQuote'
   | 'int'
   | 'randomRandInt'
+  | 'timeSleep'
   | 'assign'
   | 'range'
   // legacy persisted block types (no longer shown in palette)
@@ -80,6 +83,7 @@ const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: 
   { type: 'condOr', label: 'or', inlinePlaceholders: ['left', 'right'], hasChildren: false },
   { type: 'condNot', label: 'not', inlinePlaceholders: ['value'], hasChildren: false },
   { type: 'randomRandInt', label: 'random.randint()', inlinePlaceholders: ['arg1', 'arg2'], hasChildren: false },
+  { type: 'timeSleep', label: 'time.sleep()', inlinePlaceholders: ['seconds'], hasChildren: false },
   { type: 'turtleForward', label: 'turtle.forward()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleBackward', label: 'turtle.backward()', inlinePlaceholders: ['参数'], hasChildren: false },
   { type: 'turtleLeft', label: 'turtle.left()', inlinePlaceholders: ['参数'], hasChildren: false },
@@ -91,11 +95,35 @@ const blockPalette: Array<{ type: BlockType; label: string; inlinePlaceholders: 
   { type: 'minecraftSetTilePos', label: '设置player的位置坐标', inlinePlaceholders: ['x', 'y', 'z'], hasChildren: false },
   { type: 'minecraftSetBlock', label: '放置方块', inlinePlaceholders: ['x', 'y', 'z', 'blockId'], hasChildren: false },
   { type: 'minecraftGetBlock', label: '取得方块Id', inlinePlaceholders: ['x', 'y', 'z'], hasChildren: false },
+  { type: 'minecraftSpawnEntity', label: '生成实体', inlinePlaceholders: ['x', 'y', 'z', 'entityType'], hasChildren: false },
+  { type: 'minecraftSetRotation', label: '设置朝向', inlinePlaceholders: ['yaw'], hasChildren: false },
 ]
 
 const nextId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 
 export const paletteBlocks = blockPalette
+
+export function getFilteredPaletteBlocks(config?: { enableTurtle?: boolean; enableRemoteExecution?: boolean }): typeof blockPalette {
+  if (!config) return blockPalette
+  
+  return blockPalette.filter((block) => {
+    // Filter out turtle blocks if turtle is disabled
+    if (!config.enableTurtle && isTurtleBlock(block.type)) {
+      return false
+    }
+    return true
+  })
+}
+
+function isTurtleBlock(type: BlockType): boolean {
+  return (
+    type === 'turtleForward' ||
+    type === 'turtleBackward' ||
+    type === 'turtleLeft' ||
+    type === 'turtleRight' ||
+    type === 'turtleDone'
+  )
+}
 
 export function createBlock(type: BlockType): BlockModel {
   const config = blockPalette.find((item) => item.type === type)
@@ -169,7 +197,23 @@ function applyMinecraftSlotRules(block: BlockModel): void {
     }
   }
 
+  if (block.type === 'minecraftSetRotation') {
+    for (const slot of block.inlineSlots) {
+      slot.usePlaceholderAsDefault = true
+    }
+  }
+
   if (block.type === 'minecraftSetBlock') {
+    for (let index = 0; index < block.inlineSlots.length; index += 1) {
+      const slot = block.inlineSlots[index]
+      slot.usePlaceholderAsDefault = index < 3
+      if (index === 3) {
+        slot.allowBlockDrop = true
+      }
+    }
+  }
+
+  if (block.type === 'minecraftSpawnEntity') {
     for (let index = 0; index < block.inlineSlots.length; index += 1) {
       const slot = block.inlineSlots[index]
       slot.usePlaceholderAsDefault = index < 3

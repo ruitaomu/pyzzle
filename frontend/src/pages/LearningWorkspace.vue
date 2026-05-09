@@ -8,9 +8,11 @@ import { useEditorStore } from '../stores/editorStore'
 import { useRunSessionStore } from '../stores/runSessionStore'
 import type { BlockType } from '../types/blocks'
 import { getUserName, setUserName } from '../utils/userIdentity'
+import { getFeatureConfig } from '../config/features'
 
 const editorStore = useEditorStore()
 const runStore = useRunSessionStore()
+const featureConfig = getFeatureConfig()
 
 const pendingPromptText = computed(() => runStore.pendingPrompt?.promptText ?? '')
 const isPromptOpen = computed(() => !!runStore.pendingPrompt)
@@ -138,7 +140,7 @@ onUnmounted(() => {
       </div>
       <div class="actions">
         <button type="button" class="submit" :disabled="submitButtonDisabled" @click="submitCode">提交</button>
-        <button type="button" :class="runButtonClass" :disabled="runButtonDisabled" @click="runCode">
+        <button v-if="featureConfig.enableRemoteExecution" type="button" :class="runButtonClass" :disabled="runButtonDisabled" @click="runCode">
           {{ runButtonLabel }}
         </button>
         <button type="button" class="clear" @click="clearAll">清除</button>
@@ -164,7 +166,7 @@ onUnmounted(() => {
         @range-arity-change="editorStore.setRangeArity($event.blockId, $event.arity)"
       />
 
-      <ConsolePanel :lines="runStore.lines" :run-state="runStore.runState" :connection-state="runStore.connectionState" />
+      <ConsolePanel v-if="featureConfig.enableRemoteExecution" :lines="runStore.lines" :run-state="runStore.runState" :connection-state="runStore.connectionState" />
     </section>
 
     <button

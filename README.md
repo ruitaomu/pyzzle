@@ -49,6 +49,54 @@ pyzzle/
   - 强制停止运行。
   - 屏蔽/解除屏蔽用户。
 
+## 2.1 Teacher Dashboard / 教师端仪表板
+
+### English
+The teacher dashboard provides real-time monitoring and control of all student sessions.
+
+**Access the teacher dashboard:**
+- Navigate to `http://<host-ip>:5000/admin` in your browser
+- No login required (for classroom/intranet use)
+
+**Teacher dashboard features:**
+1. **Active Sessions List** – View all connected students with:
+   - Student user_id and optional name
+   - Current connection and execution status
+   - Last submission timestamp
+2. **View Submission** – Click on any student to view their latest code submission
+   - Full code editor with syntax highlighting (read-only)
+   - One-click copy button to copy code to clipboard
+3. **Force Stop** – Immediately terminate a student's running code
+   - Useful for stopping infinite loops or stuck processes
+4. **Block/Unblock User** – Temporarily block or restore a student's access
+   - Blocked users see "已屏蔽" (blocked) in connection status
+   - Click to toggle block status
+
+**Screenshot:** See `screenshot-teacher.png` for visual reference.
+
+### 中文
+教师端仪表板提供所有学生会话的实时监控和控制。
+
+**访问教师端：**
+- 在浏览器中打开 `http://<主机IP>:5000/admin`
+- 无需登录（仅供课堂/内网使用）
+
+**教师端功能：**
+1. **活跃会话列表** – 查看所有已连接的学生，包括：
+   - 学生的 user_id 和可选的姓名
+   - 当前连接状态和执行状态
+   - 最近一次提交的时间戳
+2. **查看提交代码** – 点击任何学生查看其最新的代码提交
+   - 全功能代码编辑器（有语法高亮，只读）
+   - 一键复制按钮，方便复制代码到剪贴板
+3. **强制停止** – 立即终止学生正在运行的代码
+   - 用于停止死循环或卡住的进程
+4. **屏蔽/解除屏蔽用户** – 临时禁用或恢复学生的访问权限
+   - 被屏蔽的学生会看到"已屏蔽"的连接状态
+   - 点击按钮切换屏蔽状态
+
+**参考截图：** 见 `screenshot-teacher.png`。
+
 ## 3. Requirements / 环境要求
 
 ### English
@@ -117,6 +165,21 @@ Example `.env` in `frontend/`:
 VITE_BACKEND_URL=http://192.168.1.23:5000
 ```
 
+**Feature flags** (optional configuration):
+
+The student workspace supports runtime feature configuration via environment variables:
+
+- `VITE_ENABLE_TURTLE` (default: `true`) – Show/hide turtle blocks in the palette and generated code imports
+- `VITE_ENABLE_REMOTE_EXECUTION` (default: `true`) – Show/hide run button, stop button, and console output panel
+
+Example `.env` to disable turtle and remote execution:
+
+```env
+VITE_BACKEND_URL=http://192.168.1.23:5000
+VITE_ENABLE_TURTLE=false
+VITE_ENABLE_REMOTE_EXECUTION=false
+```
+
 ### 中文
 ```bash
 cd frontend
@@ -135,6 +198,21 @@ Vite 已配置监听 `0.0.0.0`，局域网设备可访问。
 
 ```env
 VITE_BACKEND_URL=http://192.168.1.23:5000
+```
+
+**功能开关**（可选配置）：
+
+学生工作台支持通过环境变量运行时配置功能：
+
+- `VITE_ENABLE_TURTLE`（默认：`true`） – 显示/隐藏调色板中的 turtle 块和生成的代码导入
+- `VITE_ENABLE_REMOTE_EXECUTION`（默认：`true`） – 显示/隐藏运行按钮、停止按钮和控制台输出面板
+
+示例 `.env`，用于禁用 turtle 和远程执行：
+
+```env
+VITE_BACKEND_URL=http://192.168.1.23:5000
+VITE_ENABLE_TURTLE=false
+VITE_ENABLE_REMOTE_EXECUTION=false
 ```
 
 ## 6. Production-ish Build / 构建与预览

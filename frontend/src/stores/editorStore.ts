@@ -505,6 +505,7 @@ function findBlockPath(
 function renderProgram(nodes: BlockModel[]): string {
   const body = nodes.map((node) => renderBlock(node, 0)).join('\n').trimEnd()
   const needsRandomImport = nodes.some((node) => containsBlockType(node, 'randomRandInt'))
+  const needsTimeImport = nodes.some((node) => containsBlockType(node, 'timeSleep'))
   const needsTurtleImport = nodes.some((node) => containsAnyBlockType(node, [
     'turtleForward',
     'turtleBackward',
@@ -519,11 +520,16 @@ function renderProgram(nodes: BlockModel[]): string {
     'minecraftSetTilePos',
     'minecraftSetBlock',
     'minecraftGetBlock',
+    'minecraftSpawnEntity',
+    'minecraftSetRotation',
   ]))
   const imports: string[] = []
 
   if (needsRandomImport) {
     imports.push('import random')
+  }
+  if (needsTimeImport) {
+    imports.push('import time')
   }
   if (needsTurtleImport) {
     imports.push('import turtle')
@@ -589,6 +595,12 @@ function renderBlock(node: BlockModel, depth: number): string {
   if (node.type === 'minecraftGetBlock') {
     return `${indent}mc.getBlock(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]})`
   }
+  if (node.type === 'minecraftSpawnEntity') {
+    return `${indent}mc.spawnEntity(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]}, ${slotValues[3]})`
+  }
+  if (node.type === 'minecraftSetRotation') {
+    return `${indent}player.setRotation(${slotValues[0]})`
+  }
   if (node.type === 'turtleForward') {
     return `${indent}turtle.forward(${functionArgValues[0]})`
   }
@@ -624,6 +636,9 @@ function renderBlock(node: BlockModel, depth: number): string {
   }
   if (node.type === 'randomRandInt') {
     return `${indent}random.randint(${functionArgValues[0]}, ${functionArgValues[1]})`
+  }
+  if (node.type === 'timeSleep') {
+    return `${indent}time.sleep(${functionArgValues[0]})`
   }
   if (node.type === 'print') {
     return `${indent}print(${functionArgValues[0]})`
@@ -667,6 +682,12 @@ function renderInlineBlock(node: BlockModel): string {
   if (node.type === 'doubleQuote') {
     return toPythonStringLiteral(node.inlineSlots[0]?.textValue ?? '')
   }
+    if (node.type === 'minecraftSetRotation') {
+      return `player.setRotation(${slotValues[0]})`
+    }
+    if (node.type === 'timeSleep') {
+      return `time.sleep(${functionArgValues[0]})`
+    }
   if (node.type === 'minecraftConnect') {
     const arg = renderSlotValue(node.inlineSlots[0], false)
     return arg ? `mc = minecraft.Minecraft.create(${arg})` : 'mc = minecraft.Minecraft.create()'
@@ -685,6 +706,9 @@ function renderInlineBlock(node: BlockModel): string {
   }
   if (node.type === 'minecraftGetBlock') {
     return `mc.getBlock(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]})`
+  }
+  if (node.type === 'minecraftSpawnEntity') {
+    return `mc.spawnEntity(${slotValues[0]}, ${slotValues[1]}, ${slotValues[2]}, ${slotValues[3]})`
   }
   if (node.type === 'for') {
     return `(${slotValues[0]} in ${slotValues[1]})`
