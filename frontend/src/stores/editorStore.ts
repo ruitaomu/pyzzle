@@ -523,6 +523,13 @@ function renderProgram(nodes: BlockModel[]): string {
     'minecraftSpawnEntity',
     'minecraftSetRotation',
   ]))
+  const needsMinecraftBlockImport = nodes.some((node) => containsAnyBlockType(node, [
+    'minecraftSetBlock',
+    'minecraftGetBlock',
+  ]))
+  const needsMinecraftEntityImport = nodes.some((node) => containsAnyBlockType(node, [
+    'minecraftSpawnEntity',
+  ]))
   const imports: string[] = []
 
   if (needsRandomImport) {
@@ -536,7 +543,12 @@ function renderProgram(nodes: BlockModel[]): string {
   }
   if (needsMinecraftImport) {
     imports.push('import mcpi.minecraft as minecraft')
+  }
+  if (needsMinecraftBlockImport) {
     imports.push('from mcpi import block')
+  }
+  if (needsMinecraftEntityImport) {
+    imports.push('from mcpi import entity')
   }
 
   if (imports.length === 0) {
